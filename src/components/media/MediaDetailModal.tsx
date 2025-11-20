@@ -1,3 +1,4 @@
+// src/components/media/MediaDetailModal.tsx
 import React from 'react';
 
 interface MediaDetailModalProps {
@@ -5,20 +6,17 @@ interface MediaDetailModalProps {
   onClose: () => void;
   media: {
     title: string;
-    description: string;
+    description?: string;
     thumbnail_url: string;
     rating: number;
     runtime: number;
     category: string;
-    stream_url?: string;
   } | null;
   onPlay: () => void;
 }
 
 export const MediaDetailModal: React.FC<MediaDetailModalProps> = ({ isOpen, onClose, media, onPlay }) => {
   if (!isOpen || !media) return null;
-
-  const isPlayable = Boolean(media.stream_url);
 
   return (
     <div className="fixed inset-0 bg-black/90 flex items-center justify-center z-50 p-4">
@@ -46,16 +44,16 @@ export const MediaDetailModal: React.FC<MediaDetailModalProps> = ({ isOpen, onCl
             <span className="px-3 py-1 bg-orange-600 rounded text-sm">{media.category}</span>
           </div>
 
-          <p className="text-white/80 text-lg mb-8">{media.description}</p>
+          <p className="text-white/80 text-lg mb-8">{media.description || 'No description available'}</p>
 
           <button
             onClick={onPlay}
-            disabled={!isPlayable}
-            className={`px-8 py-4 rounded-lg font-bold flex items-center gap-2 ${
-              isPlayable ? 'bg-orange-600 hover:bg-orange-700 text-white' : 'bg-zinc-700 text-white cursor-not-allowed'
-            }`}
+            className="px-8 py-4 bg-orange-600 hover:bg-orange-700 text-white font-bold rounded-lg transition flex items-center gap-2"
           >
-            {isPlayable ? 'Play Now' : 'Subscribe to Play'}
+            <svg className="w-6 h-6" fill="currentColor" viewBox="0 0 20 20">
+              <path d="M6.3 2.841A1.5 1.5 0 004 4.11V15.89a1.5 1.5 0 002.3 1.269l9.344-5.89a1.5 1.5 0 000-2.538L6.3 2.84z" />
+            </svg>
+            Play Now
           </button>
         </div>
       </div>
