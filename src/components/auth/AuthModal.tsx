@@ -16,6 +16,29 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose }) => {
 
   if (!isOpen) return null;
 
+  const handleSubscriptionCreation = async (email: string) => {
+    try {
+      // Default plan; you can make it dynamic based on selection
+      const plan = 'Monthly @ R89';
+
+      const res = await fetch('/api/createSubscriptionAfterPayment', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, plan }),
+      });
+
+      const data = await res.json();
+
+      if (!data.success) {
+        console.error('Subscription creation failed:', data.error);
+      } else {
+        console.log('Subscription created successfully:', data.subscription);
+      }
+    } catch (err) {
+      console.error('Error calling subscription function:', err);
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
@@ -24,6 +47,8 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose }) => {
     try {
       if (isSignUp) {
         await signUp(email, password);
+        // After signup, create subscription via Supabase Edge function
+        await handleSubscriptionCreation(email);
       } else {
         await signIn(email, password);
       }
