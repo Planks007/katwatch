@@ -1,11 +1,18 @@
+// src/components/media/MediaRow.tsx
 import React from 'react';
 import { MediaCard } from './MediaCard';
-import { MediaItem } from '@/services/ResellerService';
+
+export interface Media {
+  id: string;
+  title: string;
+  thumbnail_url: string;
+  rating: number;
+}
 
 interface MediaRowProps {
   title: string;
-  media: MediaItem[];
-  onMediaClick: (media: MediaItem) => void;
+  media: Media[];
+  onMediaClick: (id: string) => void;
 }
 
 export const MediaRow: React.FC<MediaRowProps> = ({ title, media, onMediaClick }) => {
@@ -20,7 +27,7 @@ export const MediaRow: React.FC<MediaRowProps> = ({ title, media, onMediaClick }
                 title={item.title}
                 thumbnail={item.thumbnail_url}
                 rating={item.rating}
-                onClick={() => onMediaClick(item)}
+                onClick={() => onMediaClick(item.id)}
               />
             </div>
           ))}
