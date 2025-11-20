@@ -1,4 +1,3 @@
-// src/components/media/MediaDetailModal.tsx
 import React from 'react';
 
 interface MediaDetailModalProps {
@@ -6,7 +5,7 @@ interface MediaDetailModalProps {
   onClose: () => void;
   media: {
     title: string;
-    description?: string;
+    description: string;
     thumbnail_url: string;
     rating: number;
     runtime: number;
@@ -44,7 +43,7 @@ export const MediaDetailModal: React.FC<MediaDetailModalProps> = ({ isOpen, onCl
             <span className="px-3 py-1 bg-orange-600 rounded text-sm">{media.category}</span>
           </div>
 
-          <p className="text-white/80 text-lg mb-8">{media.description || 'No description available'}</p>
+          <p className="text-white/80 text-lg mb-8">{media.description}</p>
 
           <button
             onClick={onPlay}
