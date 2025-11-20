@@ -1,71 +1,96 @@
 // src/pages/Index.tsx
-import React, { useEffect, useState } from 'react';
-import { ResellerService, ResellerMedia } from '@/services/ResellerService';
+import React, { useState, useEffect } from 'react';
 import { MediaRow } from '@/components/media/MediaRow';
 import { MediaDetailModal } from '@/components/media/MediaDetailModal';
-import { SubscriptionCard } from '@/components/subscription/SubscriptionCard';
+import { ResellerService, ResellerMedia } from '@/services/ResellerService';
 import { useAuth } from '@/contexts/AuthContext';
+import { useQuery } from '@tanstack/react-query';
+import { SubscriptionCard } from '@/components/subscription/SubscriptionCard';
 
-const Index = () => {
-  const { user, subscriptionStatus } = useAuth();
-  const [streams, setStreams] = useState<ResellerMedia[]>([]);
+const Index: React.FC = () => {
+  const { user, subscription } = useAuth();
   const [selectedMedia, setSelectedMedia] = useState<ResellerMedia | null>(null);
-  const [isModalOpen, setIsModalOpen] = useState(false);
 
-  useEffect(() => {
-    if (user?.id) {
-      ResellerService.getUserStreams(user.id).then(setStreams);
+  // Fetch user streams via React Query
+  const { data: mediaList = [], isLoading } = useQuery<ResellerMedia[]>(
+    ['userStreams', user?.id],
+    () => ResellerService.getUserStreams(user!.id),
+    {
+      enabled: !!user,
     }
-  }, [user]);
+  );
 
+  // Handle media card click
   const handleMediaClick = (id: string) => {
-    const media = streams.find((m) => m.id === id) || null;
-    setSelectedMedia(media);
-    setIsModalOpen(true);
+    const media = mediaList.find((m) => m.id === id);
+    if (media) setSelectedMedia(media);
   };
 
+  // Handle play
   const handlePlay = () => {
-    if (subscriptionStatus !== 'active') {
-      alert('You must have an active subscription to play this content.');
+    if (!subscription || subscription.status !== 'active') {
+      alert('You need an active subscription to play this content.');
       return;
     }
-    if (selectedMedia?.stream_url) {
-      window.location.href = selectedMedia.stream_url; // Or use a player component
+
+    if (selectedMedia) {
+      // Open the stream in a new tab or player
+      window.open(selectedMedia.stream_url, '_blank');
     }
+  };
+
+  // Handle subscribe click
+  const handleSubscribe = () => {
+    // Navigate to subscription page or open modal
+    alert('Redirecting to subscription page...');
   };
 
   return (
-    <div className="p-4">
-      <SubscriptionCard
-        status={subscriptionStatus}
-        nextBillingDate={user?.nextBillingDate || null}
-        onSubscribe={() => alert('Redirect to subscription checkout')}
-      />
+    <div className="min-h-screen bg-zinc-950">
+      <div className="py-8 px-4 md:px-8 max-w-7xl mx-auto">
+        <h1 className="text-4xl font-bold text-white mb-8">Welcome, {user?.email || 'Guest'}</h1>
 
-      <MediaRow
-        title="All Media"
-        media={streams.map((s) => ({
-          id: s.id,
-          title: s.title,
-          thumbnail_url: s.thumbnail_url,
-          rating: s.rating,
-        }))}
-        onMediaClick={handleMediaClick}
-      />
+        {!subscription || subscription.status !== 'active' ? (
+          <SubscriptionCard
+            status={subscription?.status ?? null}
+            nextBillingDate={subscription?.nextBillingDate ?? null}
+            onSubscribe={handleSubscribe}
+          />
+        ) : null}
 
-      <MediaDetailModal
-        isOpen={isModalOpen}
-        onClose={() => setIsModalOpen(false)}
-        media={selectedMedia && {
-          title: selectedMedia.title,
-          description: selectedMedia.description || 'No description',
-          thumbnail_url: selectedMedia.thumbnail_url,
-          rating: selectedMedia.rating,
-          runtime: selectedMedia.runtime,
-          category: selectedMedia.category,
-        }}
-        onPlay={handlePlay}
-      />
+        {isLoading ? (
+          <p className="text-white">Loading media...</p>
+        ) : (
+          <MediaRow
+            title="Your Media Library"
+            media={mediaList.map((m) => ({
+              id: m.id,
+              title: m.name,
+              thumbnail_url: m.thumbnail,
+              rating: m.rating,
+            }))}
+            onMediaClick={handleMediaClick}
+          />
+        )}
+
+        <MediaDetailModal
+          isOpen={!!selectedMedia}
+          media={
+            selectedMedia
+              ? {
+                  title: selectedMedia.name,
+                  description: selectedMedia.category,
+                  thumbnail_url: selectedMedia.thumbnail,
+                  rating: selectedMedia.rating,
+                  runtime: selectedMedia.runtime,
+                  category: selectedMedia.category,
+                }
+              : null
+          }
+          onClose={() => setSelectedMedia(null)}
+          onPlay={handlePlay}
+        />
+      </div>
     </div>
   );
 };
