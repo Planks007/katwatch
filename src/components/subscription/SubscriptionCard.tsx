@@ -1,9 +1,10 @@
 import React, { useState } from 'react';
 
 interface SubscriptionCardProps {
-  userEmail: string; // pass logged-in user email
+  userEmail: string;
   status: 'active' | 'expired' | 'canceled' | null;
   nextBillingDate: string | null;
+  onSubscribe?: () => void; // optional callback if redirect/modal is handled outside
 }
 
 interface SubscriptionResponse {
@@ -11,7 +12,12 @@ interface SubscriptionResponse {
   nextBillingDate: string | null;
 }
 
-export const SubscriptionCard: React.FC<SubscriptionCardProps> = ({ userEmail, status, nextBillingDate }) => {
+export const SubscriptionCard: React.FC<SubscriptionCardProps> = ({
+  userEmail,
+  status,
+  nextBillingDate,
+  onSubscribe,
+}) => {
   const [loading, setLoading] = useState(false);
   const [subStatus, setSubStatus] = useState(status);
   const [nextDate, setNextDate] = useState(nextBillingDate);
@@ -19,10 +25,13 @@ export const SubscriptionCard: React.FC<SubscriptionCardProps> = ({ userEmail, s
   const handleSubscribe = async () => {
     if (!userEmail) return alert('Please login to subscribe');
 
-    setLoading(true);
+    if (onSubscribe) {
+      onSubscribe();
+      return;
+    }
 
+    setLoading(true);
     try {
-      // Call serverless function via HTTP instead of direct import
       const res = await fetch('/api/createUserSubscription', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -48,7 +57,7 @@ export const SubscriptionCard: React.FC<SubscriptionCardProps> = ({ userEmail, s
   const isActive = subStatus === 'active';
 
   return (
-    <div className="bg-zinc-900 rounded-lg p-8 max-w-2xl mx-auto">
+    <div className="bg-zinc-900 rounded-lg p-8 max-w-2xl mx-auto mb-8">
       <h2 className="text-3xl font-bold text-white mb-6">Subscription</h2>
 
       <div className="mb-8">
@@ -66,7 +75,9 @@ export const SubscriptionCard: React.FC<SubscriptionCardProps> = ({ userEmail, s
         {isActive && nextDate && (
           <div className="flex items-center justify-between mb-4">
             <span className="text-white/80">Next Billing Date</span>
-            <span className="text-white font-semibold">{new Date(nextDate).toLocaleDateString()}</span>
+            <span className="text-white font-semibold">
+              {new Date(nextDate).toLocaleDateString()}
+            </span>
           </div>
         )}
 
@@ -86,11 +97,13 @@ export const SubscriptionCard: React.FC<SubscriptionCardProps> = ({ userEmail, s
         </button>
       )}
 
-      {isActive && (
-        <div className="text-center text-white/60 text-sm">
-          Your subscription will automatically renew on {nextDate && new Date(nextDate).toLocaleDateString()}
+      {isActive && nextDate && (
+        <div className="text-center text-white/60 text-sm mt-4">
+          Your subscription will automatically renew on {new Date(nextDate).toLocaleDateString()}
         </div>
       )}
     </div>
   );
 };
+
+export default SubscriptionCard;
