@@ -1,37 +1,57 @@
-import React from 'react';
-import { MediaCard } from './MediaCard';
-
-interface Media {
-  id: string;
-  title: string;
-  thumbnail: string;
-  rating: number;
-}
+// src/components/media/MediaRow.tsx
+import React, { useEffect, useState } from 'react';
+import { ResellerService, ResellerMedia } from '../../services/ResellerService';
+import MediaDetailModal from './MediaDetailModal';
 
 interface MediaRowProps {
-  title: string;
-  media: Media[];
-  onMediaClick: (id: string) => void;
+  userId: string;
 }
 
-export const MediaRow: React.FC<MediaRowProps> = ({ title, media, onMediaClick }) => {
+const MediaRow: React.FC<MediaRowProps> = ({ userId }) => {
+  const [mediaList, setMediaList] = useState<ResellerMedia[]>([]);
+  const [selectedMedia, setSelectedMedia] = useState<ResellerMedia | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    async function fetchStreams() {
+      setLoading(true);
+      const streams = await ResellerService.getUserStreams(userId);
+      setMediaList(streams);
+      setLoading(false);
+    }
+    fetchStreams();
+  }, [userId]);
+
+  if (loading) return <p>Loading streams...</p>;
+
   return (
-    <div className="mb-8">
-      <h2 className="text-2xl font-bold text-white mb-4 px-4 md:px-8">{title}</h2>
-      <div className="overflow-x-auto scrollbar-hide px-4 md:px-8">
-        <div className="flex gap-4 pb-4">
-          {media.map((item) => (
-            <div key={item.id} className="flex-none w-48">
-              <MediaCard
-                title={item.title}
-                thumbnail={item.thumbnail}
-                rating={item.rating}
-                onClick={() => onMediaClick(item.id)}
-              />
-            </div>
-          ))}
-        </div>
+    <div>
+      <div className="media-row flex gap-4 overflow-x-auto py-2">
+        {mediaList.map((media) => (
+          <div
+            key={media.id}
+            className="media-card cursor-pointer w-48 flex-shrink-0"
+            onClick={() => setSelectedMedia(media)}
+          >
+            <img
+              src={media.thumbnail}
+              alt={media.name}
+              className="rounded-lg w-full h-28 object-cover"
+            />
+            <h3 className="text-sm font-semibold mt-1">{media.name}</h3>
+            <p className="text-xs text-gray-400">{media.category}</p>
+          </div>
+        ))}
       </div>
+
+      {selectedMedia && (
+        <MediaDetailModal
+          media={selectedMedia}
+          onClose={() => setSelectedMedia(null)}
+        />
+      )}
     </div>
   );
 };
+
+export default MediaRow;
