@@ -3,20 +3,28 @@ import React, { useEffect, useState } from 'react';
 import { MediaRow } from '@/components/MediaRow.tsx';
 import { MediaDetailModal } from '@/components/MediaDetailModal.tsx';
 import { SubscriptionCard } from '@/components/subscription/SubscriptionCard.tsx';
+import { useAuth } from '@/contexts/AuthContext';
 import { getUserSubscription } from '@/services/getUserSubscription.ts';
 import { createUserSubscription } from '@/services/createUserSubscription.ts';
-import { useAuth } from '@/contexts/AuthContext';
+import { ResellerService } from '@/services/ResellerService.ts';
 
-// Example media data (replace with your actual API or DB)
-const mockMovies = [
-  { id: '1', title: 'Movie 1', thumbnail_url: '/assets/movie1.jpg', rating: 8 },
-  { id: '2', title: 'Movie 2', thumbnail_url: '/assets/movie2.jpg', rating: 7 },
-];
+// Media type returned by reseller
+interface ResellerMedia {
+  id: string;
+  title: string;
+  thumbnail: string;
+  rating: number;
+  description: string;
+  runtime: number;
+  category: string;
+  streamUrl: string;
+}
 
 export default function Index() {
   const { user } = useAuth();
   const [subscription, setSubscription] = useState<{ status: string; nextBillingDate: string } | null>(null);
-  const [selectedMedia, setSelectedMedia] = useState<any>(null);
+  const [mediaList, setMediaList] = useState<ResellerMedia[]>([]);
+  const [selectedMedia, setSelectedMedia] = useState<ResellerMedia | null>(null);
   const [modalOpen, setModalOpen] = useState(false);
   const [loading, setLoading] = useState(false);
 
@@ -28,6 +36,20 @@ export default function Index() {
       setSubscription(sub);
     }
     fetchSubscription();
+  }, [user]);
+
+  // Fetch streams from reseller panel
+  useEffect(() => {
+    async function fetchStreams() {
+      if (!user) return;
+      try {
+        const streams = await ResellerService.getUserStreams(user.email);
+        setMediaList(streams);
+      } catch (err: any) {
+        console.error('Failed to fetch streams:', err.message);
+      }
+    }
+    fetchStreams();
   }, [user]);
 
   // Handle subscription creation
@@ -46,7 +68,7 @@ export default function Index() {
 
   // Handle media card click
   const handleMediaClick = (mediaId: string) => {
-    const media = mockMovies.find((m) => m.id === mediaId);
+    const media = mediaList.find((m) => m.id === mediaId);
     if (!media) return;
     setSelectedMedia(media);
     setModalOpen(true);
@@ -58,7 +80,7 @@ export default function Index() {
       alert('You need an active subscription to play this content.');
       return;
     }
-    alert(`Playing ${selectedMedia.title}...`);
+    alert(`Playing ${selectedMedia?.title} at ${selectedMedia?.streamUrl}`);
     // TODO: replace with actual player logic
   };
 
@@ -73,8 +95,13 @@ export default function Index() {
 
       {/* Media Rows */}
       <MediaRow
-        title="Movies"
-        media={mockMovies}
+        title="Available Media"
+        media={mediaList.map(m => ({
+          id: m.id,
+          title: m.title,
+          thumbnail_url: m.thumbnail,
+          rating: m.rating
+        }))}
         onMediaClick={handleMediaClick}
       />
 
@@ -82,7 +109,14 @@ export default function Index() {
       <MediaDetailModal
         isOpen={modalOpen}
         onClose={() => setModalOpen(false)}
-        media={selectedMedia}
+        media={selectedMedia ? {
+          title: selectedMedia.title,
+          description: selectedMedia.description,
+          thumbnail_url: selectedMedia.thumbnail,
+          rating: selectedMedia.rating,
+          runtime: selectedMedia.runtime,
+          category: selectedMedia.category
+        } : null}
         onPlay={handlePlay}
       />
     </div>
