@@ -1,9 +1,13 @@
 import React, { useState } from 'react';
-import { createUserSubscription } from '../api/createUserSubscription';
 
 interface SubscriptionCardProps {
   userEmail: string; // pass logged-in user email
   status: 'active' | 'expired' | 'canceled' | null;
+  nextBillingDate: string | null;
+}
+
+interface SubscriptionResponse {
+  status: 'active' | 'expired' | 'canceled';
   nextBillingDate: string | null;
 }
 
@@ -18,7 +22,16 @@ export const SubscriptionCard: React.FC<SubscriptionCardProps> = ({ userEmail, s
     setLoading(true);
 
     try {
-      const subscription = await createUserSubscription(userEmail);
+      // Call serverless function via HTTP instead of direct import
+      const res = await fetch('/api/createUserSubscription', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: userEmail }),
+      });
+
+      if (!res.ok) throw new Error('Failed to create subscription');
+
+      const subscription: SubscriptionResponse = await res.json();
 
       setSubStatus(subscription.status);
       setNextDate(subscription.nextBillingDate);
@@ -37,13 +50,15 @@ export const SubscriptionCard: React.FC<SubscriptionCardProps> = ({ userEmail, s
   return (
     <div className="bg-zinc-900 rounded-lg p-8 max-w-2xl mx-auto">
       <h2 className="text-3xl font-bold text-white mb-6">Subscription</h2>
-      
+
       <div className="mb-8">
         <div className="flex items-center justify-between mb-4">
           <span className="text-white/80">Status</span>
-          <span className={`px-4 py-2 rounded-full font-semibold ${
-            isActive ? 'bg-green-600 text-white' : 'bg-red-600 text-white'
-          }`}>
+          <span
+            className={`px-4 py-2 rounded-full font-semibold ${
+              isActive ? 'bg-green-600 text-white' : 'bg-red-600 text-white'
+            }`}
+          >
             {subStatus ? subStatus.toUpperCase() : 'INACTIVE'}
           </span>
         </div>
