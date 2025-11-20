@@ -11,11 +11,11 @@ interface Media {
 interface MediaRowProps {
   title: string;
   media: Media[];
-  userEmail: string; // NEW: pass user email for subscription checks
-  onMediaClick: (id: string) => void;
+  onMediaClick: (media: Media) => void;
+  userEmail: string | null; // Add userEmail here
 }
 
-export const MediaRow: React.FC<MediaRowProps> = ({ title, media, userEmail, onMediaClick }) => {
+export const MediaRow: React.FC<MediaRowProps> = ({ title, media, onMediaClick, userEmail }) => {
   return (
     <div className="mb-8">
       <h2 className="text-2xl font-bold text-white mb-4 px-4 md:px-8">{title}</h2>
@@ -27,8 +27,8 @@ export const MediaRow: React.FC<MediaRowProps> = ({ title, media, userEmail, onM
                 title={item.title}
                 thumbnail={item.thumbnail_url}
                 rating={item.rating}
-                userEmail={userEmail} // pass email to MediaCard
-                onClick={() => onMediaClick(item.id)}
+                userEmail={userEmail} // Pass down userEmail
+                onClick={() => onMediaClick(item)}
               />
             </div>
           ))}
