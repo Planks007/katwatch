@@ -1,5 +1,5 @@
-import React from "react";
-import { MediaCard } from "./MediaCard";
+import React from 'react';
+import { MediaCard } from './MediaCard';
 
 interface Media {
   id: string;
@@ -11,11 +11,11 @@ interface Media {
 interface MediaRowProps {
   title: string;
   media: Media[];
-  onMediaClick: (media: Media) => void;
-  userEmail: string | null; // Add userEmail here
+  onMediaClick: (id: string) => void;
+  hasActiveSubscription: boolean; // new prop
 }
 
-export const MediaRow: React.FC<MediaRowProps> = ({ title, media, onMediaClick, userEmail }) => {
+export const MediaRow: React.FC<MediaRowProps> = ({ title, media, onMediaClick, hasActiveSubscription }) => {
   return (
     <div className="mb-8">
       <h2 className="text-2xl font-bold text-white mb-4 px-4 md:px-8">{title}</h2>
@@ -27,8 +27,8 @@ export const MediaRow: React.FC<MediaRowProps> = ({ title, media, onMediaClick, 
                 title={item.title}
                 thumbnail={item.thumbnail_url}
                 rating={item.rating}
-                userEmail={userEmail} // Pass down userEmail
-                onClick={() => onMediaClick(item)}
+                onClick={() => onMediaClick(item.id)}
+                isLocked={!hasActiveSubscription} // lock if no active subscription
               />
             </div>
           ))}
