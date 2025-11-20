@@ -2,7 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import { MediaRow } from '@/components/media/MediaRow';
 import { MediaDetailModal } from '@/components/media/MediaDetailModal';
-import { ResellerService, ResellerMedia } from '../services/ResellerService';
+import { ResellerService, ResellerMedia } from '@/services/ResellerService';
 import { useAuth } from '@/contexts/AuthContext';
 import { useQuery } from '@tanstack/react-query';
 import { SubscriptionCard } from '@/components/subscription/SubscriptionCard';
