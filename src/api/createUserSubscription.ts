@@ -1,5 +1,5 @@
 import { createClient } from '@supabase/supabase-js';
-import { createIPTVAccount } from '@/reseller/PuppeteerService';
+import { createIPTVAccount } from '@/api/PuppeteerService';
 
 const supabase = createClient(
   process.env.REACT_APP_SUPABASE_URL!,
