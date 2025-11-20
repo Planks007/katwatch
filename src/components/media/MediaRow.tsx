@@ -1,11 +1,10 @@
-// src/components/media/MediaRow.tsx
 import React from 'react';
 import { MediaCard } from './MediaCard';
 
-export interface Media {
+interface Media {
   id: string;
   title: string;
-  thumbnail_url: string;
+  thumbnail: string;
   rating: number;
 }
 
@@ -25,10 +24,9 @@ export const MediaRow: React.FC<MediaRowProps> = ({ title, media, onMediaClick }
             <div key={item.id} className="flex-none w-48">
               <MediaCard
                 title={item.title}
-                thumbnail={item.thumbnail_url}
+                thumbnail={item.thumbnail}
                 rating={item.rating}
                 onClick={() => onMediaClick(item.id)}
-                isSubscribed={userSubscriptionStatus === 'active'} // pass your subscription status
               />
             </div>
           ))}
