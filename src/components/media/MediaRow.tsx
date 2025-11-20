@@ -1,55 +1,41 @@
 // src/components/media/MediaRow.tsx
-import React, { useEffect, useState } from 'react';
-import { ResellerService, ResellerMedia } from '../../services/ResellerService';
-import MediaDetailModal from './MediaDetailModal';
+import React from 'react';
 
-interface MediaRowProps {
-  userId: string;
+interface MediaItem {
+  id: string;
+  title: string;
+  thumbnail_url: string;
+  rating: number;
 }
 
-const MediaRow: React.FC<MediaRowProps> = ({ userId }) => {
-  const [mediaList, setMediaList] = useState<ResellerMedia[]>([]);
-  const [selectedMedia, setSelectedMedia] = useState<ResellerMedia | null>(null);
-  const [loading, setLoading] = useState(true);
+interface MediaRowProps {
+  title: string;
+  media: MediaItem[];
+  onMediaClick: (id: string) => void;
+}
 
-  useEffect(() => {
-    async function fetchStreams() {
-      setLoading(true);
-      const streams = await ResellerService.getUserStreams(userId);
-      setMediaList(streams);
-      setLoading(false);
-    }
-    fetchStreams();
-  }, [userId]);
-
-  if (loading) return <p>Loading streams...</p>;
+const MediaRow: React.FC<MediaRowProps> = ({ title, media, onMediaClick }) => {
+  if (!media || media.length === 0) return <p className="text-white">No media available.</p>;
 
   return (
-    <div>
+    <div className="mb-8">
+      <h2 className="text-white text-2xl font-bold mb-4">{title}</h2>
       <div className="media-row flex gap-4 overflow-x-auto py-2">
-        {mediaList.map((media) => (
+        {media.map((item) => (
           <div
-            key={media.id}
+            key={item.id}
             className="media-card cursor-pointer w-48 flex-shrink-0"
-            onClick={() => setSelectedMedia(media)}
+            onClick={() => onMediaClick(item.id)}
           >
             <img
-              src={media.thumbnail}
-              alt={media.name}
+              src={item.thumbnail_url}
+              alt={item.title}
               className="rounded-lg w-full h-28 object-cover"
             />
-            <h3 className="text-sm font-semibold mt-1">{media.name}</h3>
-            <p className="text-xs text-gray-400">{media.category}</p>
+            <h3 className="text-sm font-semibold mt-1 text-white">{item.title}</h3>
           </div>
         ))}
       </div>
-
-      {selectedMedia && (
-        <MediaDetailModal
-          media={selectedMedia}
-          onClose={() => setSelectedMedia(null)}
-        />
-      )}
     </div>
   );
 };
