@@ -1,22 +1,35 @@
-import { createClient } from '@supabase/supabase-js';
-import { createIPTVAccount } from '@/reseller/PuppeteerService';
+import puppeteer from 'puppeteer';
+import dotenv from 'dotenv';
+dotenv.config();
 
-const supabase = createClient(process.env.REACT_APP_SUPABASE_URL!, process.env.REACT_APP_SUPABASE_ANON_KEY!);
+export async function createIPTVAccount(username: string, password: string) {
+  const browser = await puppeteer.launch({ headless: 'new', args: ['--no-sandbox'] });
+  const page = await browser.newPage();
 
-export async function createUserSubscription(email: string) {
-  const password = Math.random().toString(36).slice(-8);
+  try {
+    await page.goto(`${process.env.RESELLER_PANEL_URL}admin/index.php`, { waitUntil: 'networkidle0' });
+    await page.type('input[name="username"]', process.env.RESELLER_USER!);
+    await page.type('input[name="password"]', process.env.RESELLER_PASS!);
+    await page.click('button[type="submit"]');
+    await page.waitForNavigation({ waitUntil: 'networkidle0' });
 
-  // 1️⃣ Create Supabase subscription
-  const { data, error } = await supabase
-    .from('subscriptions')
-    .insert([{ user_email: email, status: 'active', expires_at: new Date(Date.now() + 30*24*60*60*1000).toISOString() }])
-    .select()
-    .single();
+    // Add user
+    await page.goto(`${process.env.RESELLER_PANEL_URL}admin/users.php?sub=add`, { waitUntil: 'networkidle0' });
+    await page.select('select[name="line_type"]', 'line');
+    await page.type('input[name="username"]', username);
+    await page.type('input[name="password"]', password);
+    await page.select('select[name="package"]', '131'); // your package ID
+    await page.click('input[name="is_isplock"]');
 
-  if (error) throw new Error(error.message);
+    // Save
+    await page.evaluate(() => save());
+    await page.waitForTimeout(2000);
 
-  // 2️⃣ Create IPTV account in reseller panel
-  await createIPTVAccount(email, password);
-
-  return { status: data.status, nextBillingDate: data.expires_at };
+    console.log(`✅ IPTV account created: ${username}`);
+  } catch (err) {
+    console.error('❌ Puppeteer error:', err);
+    throw err;
+  } finally {
+    await browser.close();
+  }
 }
