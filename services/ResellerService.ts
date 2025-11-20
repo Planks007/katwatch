@@ -1,94 +1,71 @@
-// src/services/ResellerService.ts
-import puppeteer from 'puppeteer';
-import dotenv from 'dotenv';
+import axios from 'axios';
 
-dotenv.config();
+const BASE_URL = process.env.REACT_APP_RESELLER_PANEL_URL;
+const USERNAME = process.env.REACT_APP_RESELLER_USER;
+const PASSWORD = process.env.REACT_APP_RESELLER_PASS;
 
-interface ResellerMedia {
+export interface MediaItem {
   id: string;
   title: string;
-  thumbnail: string;
-  rating: number;
+  thumbnail_url: string;
   description: string;
-  runtime: number;
+  rating: number;
   category: string;
-  streamUrl: string;
+  runtime: number;
 }
 
-export class ResellerService {
-  static async getUserStreams(userEmail: string): Promise<ResellerMedia[]> {
-    const browser = await puppeteer.launch({ headless: 'new', args: ['--no-sandbox'] });
-    const page = await browser.newPage();
-
-    try {
-      // LOGIN
-      await page.goto(`${process.env.RESELLER_PANEL_URL}admin/index.php`, { waitUntil: 'networkidle0' });
-      await page.type('input[name="username"]', process.env.RESELLER_USER!);
-      await page.type('input[name="password"]', process.env.RESELLER_PASS!);
-      await page.click('button[type="submit"]');
-      await page.waitForNavigation({ waitUntil: 'networkidle0' });
-
-      // NAVIGATE TO USER STREAMS
-      // Example: assume page with user streams is /admin/users.php?email={userEmail}
-      await page.goto(`${process.env.RESELLER_PANEL_URL}admin/users.php?email=${userEmail}`, { waitUntil: 'networkidle0' });
-
-      // Extract media data from table or page structure
-      const streams: ResellerMedia[] = await page.evaluate(() => {
-        const rows = Array.from(document.querySelectorAll('table tr'));
-        return rows.slice(1).map(row => {
-          const cols = row.querySelectorAll('td');
-          return {
-            id: cols[0].textContent?.trim() || '',
-            title: cols[1].textContent?.trim() || 'Untitled',
-            thumbnail: cols[2]?.querySelector('img')?.getAttribute('src') || '/assets/default.jpg',
-            rating: parseFloat(cols[3]?.textContent || '0'),
-            description: cols[4]?.textContent || '',
-            runtime: parseInt(cols[5]?.textContent || '0'),
-            category: cols[6]?.textContent || 'General',
-            streamUrl: cols[7]?.querySelector('a')?.getAttribute('href') || ''
-          };
-        });
-      });
-
-      await browser.close();
-      return streams;
-    } catch (err) {
-      await browser.close();
-      console.error('ResellerService error:', err);
-      return [];
-    }
-  }
-
-  static async createSubscription(userEmail: string, username: string, password: string, packageId: string = '131') {
-    const browser = await puppeteer.launch({ headless: 'new', args: ['--no-sandbox'] });
-    const page = await browser.newPage();
-
-    try {
-      // LOGIN
-      await page.goto(`${process.env.RESELLER_PANEL_URL}admin/index.php`, { waitUntil: 'networkidle0' });
-      await page.type('input[name="username"]', process.env.RESELLER_USER!);
-      await page.type('input[name="password"]', process.env.RESELLER_PASS!);
-      await page.click('button[type="submit"]');
-      await page.waitForNavigation({ waitUntil: 'networkidle0' });
-
-      // ADD NEW USER / SUBSCRIPTION
-      await page.goto(`${process.env.RESELLER_PANEL_URL}admin/users.php?sub=add`, { waitUntil: 'networkidle0' });
-      await page.select('select[name="line_type"]', 'line');
-      await page.type('input[name="username"]', username);
-      await page.type('input[name="password"]', password);
-      await page.select('select[name="package"]', packageId);
-      await page.click('input[name="is_isplock"]');
-
-      await page.evaluate(() => (window as any).save()); // Calls panel's save function
-      await page.waitForTimeout(2000);
-
-      await browser.close();
-      console.log(`✅ Subscription created for ${username}`);
-      return true;
-    } catch (err) {
-      await browser.close();
-      console.error('ResellerService createSubscription error:', err);
-      return false;
-    }
-  }
+export interface UserSubscription {
+  status: 'active' | 'expired' | 'canceled' | null;
+  nextBillingDate: string | null;
 }
+
+export const ResellerService = {
+  async getUserStreams(email: string): Promise<MediaItem[]> {
+    // For metadata only; do not return stream URLs
+    // In production, you can fetch this from your panel or your own database
+    return [
+      {
+        id: '1',
+        title: 'Movie 1',
+        thumbnail_url: '/assets/thumb1.jpg',
+        description: 'Action packed movie',
+        rating: 4.5,
+        category: 'Action',
+        runtime: 120
+      },
+      {
+        id: '2',
+        title: 'Series 1',
+        thumbnail_url: '/assets/thumb2.jpg',
+        description: 'Drama series',
+        rating: 4.8,
+        category: 'Drama',
+        runtime: 45
+      }
+    ];
+  },
+
+  async getUserSubscription(email: string): Promise<UserSubscription> {
+    // Fetch user subscription from Supabase
+    // Placeholder for now; implement Supabase call
+    return {
+      status: 'active',
+      nextBillingDate: '2025-12-20'
+    };
+  },
+
+  async createSubscription(email: string, planId: string): Promise<boolean> {
+    // Call Puppeteer / API to create subscription on reseller panel
+    // Return true if successful
+    return true;
+  },
+
+  async getStreamUrlForUser(email: string, mediaId: string): Promise<string | null> {
+    // Check subscription before returning
+    const sub = await this.getUserSubscription(email);
+    if (sub.status !== 'active') return null;
+
+    // In production, call Puppeteer script or panel API to get M3U URL
+    return `http://yourpanel.com/stream/${email}/${mediaId}`;
+  }
+};
