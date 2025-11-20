@@ -1,33 +1,31 @@
-import React, { useEffect, useState } from 'react';
-import { getUserSubscription, SubscriptionStatus } from '@/api/getUserSubscription';
+import React, { useState, useEffect } from 'react';
+import { MediaItem, ResellerService } from '@/services/ResellerService';
 
 interface MediaDetailModalProps {
   isOpen: boolean;
   onClose: () => void;
-  media: {
-    title: string;
-    description: string;
-    thumbnail_url: string;
-    rating: number;
-    runtime: number;
-    category: string;
-  } | null;
-  onPlay: () => void;
-  userEmail: string | null;
+  media: MediaItem | null;
+  userEmail: string;
 }
 
-export const MediaDetailModal: React.FC<MediaDetailModalProps> = ({ isOpen, onClose, media, onPlay, userEmail }) => {
-  const [subscription, setSubscription] = useState<SubscriptionStatus>({ status: null, nextBillingDate: null });
+export const MediaDetailModal: React.FC<MediaDetailModalProps> = ({ isOpen, onClose, media, userEmail }) => {
+  const [canPlay, setCanPlay] = useState(false);
 
   useEffect(() => {
-    if (userEmail) {
-      getUserSubscription(userEmail).then(setSubscription);
+    if (!media) return;
+    async function checkAccess() {
+      const url = await ResellerService.getStreamUrlForUser(userEmail, media.id);
+      setCanPlay(!!url);
     }
-  }, [userEmail]);
+    checkAccess();
+  }, [media, userEmail]);
 
   if (!isOpen || !media) return null;
 
-  const canPlay = subscription.status === 'active';
+  const handlePlay = () => {
+    if (!canPlay) return alert('Subscribe to play this content.');
+    window.location.href = `player?url=${encodeURIComponent(media.id)}`; // Example player route
+  };
 
   return (
     <div className="fixed inset-0 bg-black/90 flex items-center justify-center z-50 p-4">
@@ -40,26 +38,16 @@ export const MediaDetailModal: React.FC<MediaDetailModalProps> = ({ isOpen, onCl
             </svg>
           </button>
         </div>
-
         <div className="p-8">
           <h2 className="text-4xl font-bold text-white mb-4">{media.title}</h2>
-          
-          <div className="flex items-center gap-4 mb-6 text-white/80">
-            <span className="flex items-center gap-1">{media.rating}</span>
-            <span>{media.runtime} min</span>
-            <span className="px-3 py-1 bg-orange-600 rounded text-sm">{media.category}</span>
-          </div>
-
           <p className="text-white/80 text-lg mb-8">{media.description}</p>
-
           <button
-            onClick={() => canPlay ? onPlay() : alert('You need an active subscription to play this content.')}
-            className={`px-8 py-4 text-white font-bold rounded-lg transition flex items-center gap-2 ${
-              canPlay ? 'bg-orange-600 hover:bg-orange-700' : 'bg-red-600 cursor-not-allowed'
+            onClick={handlePlay}
+            className={`px-8 py-4 bg-orange-600 hover:bg-orange-700 text-white font-bold rounded-lg transition flex items-center gap-2 ${
+              !canPlay && 'opacity-50 cursor-not-allowed'
             }`}
-            disabled={!canPlay}
           >
-            {canPlay ? 'Play Now' : 'Subscribe to Play'}
+            Play Now
           </button>
         </div>
       </div>
