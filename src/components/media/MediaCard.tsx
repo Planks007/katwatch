@@ -1,57 +1,30 @@
-import React, { useEffect, useState } from "react";
+import React from 'react';
 
 interface MediaCardProps {
   title: string;
   thumbnail: string;
   rating: number;
-  userEmail: string; // email to check subscription
   onClick: () => void;
+  isLocked?: boolean; // new prop
 }
 
-export const MediaCard: React.FC<MediaCardProps> = ({ title, thumbnail, rating, userEmail, onClick }) => {
-  const [isSubscribed, setIsSubscribed] = useState(false);
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    const fetchSubscription = async () => {
-      setLoading(true);
-      try {
-        const res = await fetch("/api/getUserSubscription", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ email: userEmail }),
-        });
-        const data = await res.json();
-        setIsSubscribed(data.status === "active");
-      } catch (err) {
-        console.error("Subscription fetch failed:", err);
-        setIsSubscribed(false);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    if (userEmail) fetchSubscription();
-  }, [userEmail]);
-
-  const handleClick = () => {
-    if (!isSubscribed) {
-      alert("You need an active subscription to play this content.");
-      return;
-    }
-    onClick();
-  };
-
+export const MediaCard: React.FC<MediaCardProps> = ({ title, thumbnail, rating, onClick, isLocked = false }) => {
   return (
     <div
-      onClick={handleClick}
-      className={`group cursor-pointer transition-transform duration-300 hover:scale-105 relative ${
-        !isSubscribed ? "opacity-70" : ""
-      }`}
+      onClick={() => !isLocked && onClick()}
+      className="group relative cursor-pointer transition-transform duration-300 hover:scale-105"
     >
       <div className="relative aspect-[2/3] rounded-lg overflow-hidden bg-zinc-800">
         <img src={thumbnail} alt={title} className="w-full h-full object-cover" />
-        <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+
+        {/* Locked Overlay */}
+        {isLocked && (
+          <div className="absolute inset-0 bg-black/70 flex items-center justify-center z-10">
+            <span className="text-white font-bold text-lg">🔒 Locked</span>
+          </div>
+        )}
+
+        <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 z-0">
           <div className="absolute bottom-0 left-0 right-0 p-4">
             <h3 className="text-white font-semibold text-sm mb-1">{title}</h3>
             <div className="flex items-center gap-2">
@@ -61,13 +34,3 @@ export const MediaCard: React.FC<MediaCardProps> = ({ title, thumbnail, rating, 
               </svg>
             </div>
           </div>
-        </div>
-        {!isSubscribed && !loading && (
-          <div className="absolute inset-0 flex items-center justify-center text-white font-bold text-sm bg-black/50 rounded-lg">
-            SUBSCRIBE TO PLAY
-          </div>
-        )}
-      </div>
-    </div>
-  );
-};
