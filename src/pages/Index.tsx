@@ -1,88 +1,90 @@
+// src/pages/Index.tsx
 import React, { useEffect, useState } from 'react';
-import { MediaRow } from '@/components/MediaRow';
-import { SubscriptionCard } from '@/components/subscription/SubscriptionCard';
-import { PayButton } from '@/components/PayButton';
-import { getUserSubscription } from '@/api/getUserSubscription'; // fetch from Supabase
+import { MediaRow } from '@/components/MediaRow.tsx';
+import { MediaDetailModal } from '@/components/MediaDetailModal.tsx';
+import { SubscriptionCard } from '@/components/subscription/SubscriptionCard.tsx';
+import { getUserSubscription } from '@/services/getUserSubscription.ts';
+import { createUserSubscription } from '@/services/createUserSubscription.ts';
 import { useAuth } from '@/contexts/AuthContext';
 
-interface Media {
-  id: string;
-  title: string;
-  thumbnail_url: string;
-  rating: number;
-}
-
-// Sample media; replace with API fetch if needed
-const sampleMedia: Media[] = [
-  { id: '1', title: 'Movie 1', thumbnail_url: '/thumb1.jpg', rating: 4.5 },
-  { id: '2', title: 'Movie 2', thumbnail_url: '/thumb2.jpg', rating: 4.0 },
+// Example media data (replace with your actual API or DB)
+const mockMovies = [
+  { id: '1', title: 'Movie 1', thumbnail_url: '/assets/movie1.jpg', rating: 8 },
+  { id: '2', title: 'Movie 2', thumbnail_url: '/assets/movie2.jpg', rating: 7 },
 ];
 
-const Index: React.FC = () => {
-  const { user } = useAuth(); // get logged in user from context
-  const [hasSubscription, setHasSubscription] = useState(false);
-  const [nextBillingDate, setNextBillingDate] = useState<string | null>(null);
+export default function Index() {
+  const { user } = useAuth();
+  const [subscription, setSubscription] = useState<{ status: string; nextBillingDate: string } | null>(null);
+  const [selectedMedia, setSelectedMedia] = useState<any>(null);
+  const [modalOpen, setModalOpen] = useState(false);
+  const [loading, setLoading] = useState(false);
 
-  // Fetch subscription on mount or user change
+  // Fetch user subscription on load
   useEffect(() => {
-    if (user?.email) {
-      getUserSubscription(user.email).then((sub) => {
-        if (sub?.status === 'active') {
-          setHasSubscription(true);
-          setNextBillingDate(sub.expires_at);
-        } else {
-          setHasSubscription(false);
-        }
-      });
+    async function fetchSubscription() {
+      if (!user?.email) return;
+      const sub = await getUserSubscription(user.email);
+      setSubscription(sub);
     }
+    fetchSubscription();
   }, [user]);
 
-  const handleSubscribe = () => {
-    if (!user?.email) return alert('Please login first');
-    // PayButton will handle payment & subscription creation
+  // Handle subscription creation
+  const handleSubscribe = async () => {
+    if (!user?.email) return;
+    setLoading(true);
+    try {
+      const newSub = await createUserSubscription(user.email);
+      setSubscription(newSub);
+    } catch (err: any) {
+      console.error('Subscription creation failed:', err.message);
+    } finally {
+      setLoading(false);
+    }
   };
 
-  const handleMediaClick = (id: string) => {
-    if (!hasSubscription) {
-      alert('You need an active subscription to play this content!');
+  // Handle media card click
+  const handleMediaClick = (mediaId: string) => {
+    const media = mockMovies.find((m) => m.id === mediaId);
+    if (!media) return;
+    setSelectedMedia(media);
+    setModalOpen(true);
+  };
+
+  // Handle play button
+  const handlePlay = () => {
+    if (!subscription || subscription.status !== 'active') {
+      alert('You need an active subscription to play this content.');
       return;
     }
-    console.log('Play media with id:', id);
-    // TODO: open MediaDetailModal or player
+    alert(`Playing ${selectedMedia.title}...`);
+    // TODO: replace with actual player logic
   };
 
   return (
-    <div className="px-4 md:px-8 py-8">
+    <div className="bg-zinc-900 min-h-screen p-4 md:p-8">
       {/* Subscription Card */}
       <SubscriptionCard
-        status={hasSubscription ? 'active' : null}
-        nextBillingDate={nextBillingDate}
+        status={subscription?.status || null}
+        nextBillingDate={subscription?.nextBillingDate || null}
         onSubscribe={handleSubscribe}
       />
-
-      {/* If user has no subscription, show PayButton */}
-      {!hasSubscription && user?.email && (
-        <div className="my-8 max-w-2xl mx-auto">
-          <PayButton userEmail={user.email} />
-        </div>
-      )}
 
       {/* Media Rows */}
       <MediaRow
         title="Movies"
-        media={sampleMedia}
+        media={mockMovies}
         onMediaClick={handleMediaClick}
-        hasActiveSubscription={hasSubscription}
       />
 
-      <MediaRow
-        title="Series"
-        media={sampleMedia}
-        onMediaClick={handleMediaClick}
-        hasActiveSubscription={hasSubscription}
+      {/* Media Detail Modal */}
+      <MediaDetailModal
+        isOpen={modalOpen}
+        onClose={() => setModalOpen(false)}
+        media={selectedMedia}
+        onPlay={handlePlay}
       />
     </div>
   );
-};
-
-export default Index;
+}
