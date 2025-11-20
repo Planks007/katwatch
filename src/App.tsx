@@ -7,6 +7,8 @@ import { ThemeProvider } from "@/components/theme-provider";
 import Index from "./pages/Index";
 import NotFound from "./pages/NotFound";
 import { AuthProvider, useAuth } from "@/contexts/AuthContext";
+import { MediaRow } from '@/components/media/MediaRow';
+import { MediaDetailModal } from '@/components/media/MediaDetailModal';
 
 const queryClient = new QueryClient();
 
