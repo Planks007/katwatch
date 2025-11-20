@@ -6,13 +6,30 @@ interface MediaCardProps {
   thumbnail: string;
   rating: number;
   onClick: () => void;
+  isSubscribed: boolean; // NEW: pass subscription status
 }
 
-export const MediaCard: React.FC<MediaCardProps> = ({ title, thumbnail, rating, onClick }) => {
+export const MediaCard: React.FC<MediaCardProps> = ({
+  title,
+  thumbnail,
+  rating,
+  onClick,
+  isSubscribed,
+}) => {
+  const handleClick = () => {
+    if (!isSubscribed) {
+      alert('You need an active subscription to play this content.');
+      return;
+    }
+    onClick();
+  };
+
   return (
     <div
-      onClick={onClick}
-      className="group cursor-pointer transition-transform duration-300 hover:scale-105"
+      onClick={handleClick}
+      className={`group cursor-pointer transition-transform duration-300 hover:scale-105 ${
+        !isSubscribed ? 'opacity-50 hover:opacity-60' : ''
+      }`}
     >
       <div className="relative aspect-[2/3] rounded-lg overflow-hidden bg-zinc-800">
         <img
