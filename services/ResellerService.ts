@@ -1,68 +1,94 @@
-// services/ResellerService.ts
-
+// src/services/ResellerService.ts
 import puppeteer from 'puppeteer';
-import { createClient } from '@supabase/supabase-js';
 import dotenv from 'dotenv';
 
 dotenv.config();
 
-const SUPABASE_URL = process.env.SUPABASE_URL!;
-const SUPABASE_KEY = process.env.SUPABASE_SERVICE_KEY!;
-const PANEL_URL = process.env.RES_PANEL_URL!;
-const PANEL_USERNAME = process.env.RES_PANEL_USERNAME!;
-const PANEL_PASSWORD = process.env.RES_PANEL_PASSWORD!;
+interface ResellerMedia {
+  id: string;
+  title: string;
+  thumbnail: string;
+  rating: number;
+  description: string;
+  runtime: number;
+  category: string;
+  streamUrl: string;
+}
 
-const supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
+export class ResellerService {
+  static async getUserStreams(userEmail: string): Promise<ResellerMedia[]> {
+    const browser = await puppeteer.launch({ headless: 'new', args: ['--no-sandbox'] });
+    const page = await browser.newPage();
 
-export async function createResellerSubscription(userEmail: string, plan: string) {
-  const browser = await puppeteer.launch({
-    headless: "new",
-    args: ['--no-sandbox']
-  });
+    try {
+      // LOGIN
+      await page.goto(`${process.env.RESELLER_PANEL_URL}admin/index.php`, { waitUntil: 'networkidle0' });
+      await page.type('input[name="username"]', process.env.RESELLER_USER!);
+      await page.type('input[name="password"]', process.env.RESELLER_PASS!);
+      await page.click('button[type="submit"]');
+      await page.waitForNavigation({ waitUntil: 'networkidle0' });
 
-  const page = await browser.newPage();
+      // NAVIGATE TO USER STREAMS
+      // Example: assume page with user streams is /admin/users.php?email={userEmail}
+      await page.goto(`${process.env.RESELLER_PANEL_URL}admin/users.php?email=${userEmail}`, { waitUntil: 'networkidle0' });
 
-  try {
-    // Login to reseller panel
-    await page.goto(PANEL_URL, { waitUntil: 'networkidle0' });
-    await page.type('input[name="username"]', PANEL_USERNAME);
-    await page.type('input[name="password"]', PANEL_PASSWORD);
-    await page.click('button[type="submit"]');
-    await page.waitForNavigation({ waitUntil: 'networkidle0' });
+      // Extract media data from table or page structure
+      const streams: ResellerMedia[] = await page.evaluate(() => {
+        const rows = Array.from(document.querySelectorAll('table tr'));
+        return rows.slice(1).map(row => {
+          const cols = row.querySelectorAll('td');
+          return {
+            id: cols[0].textContent?.trim() || '',
+            title: cols[1].textContent?.trim() || 'Untitled',
+            thumbnail: cols[2]?.querySelector('img')?.getAttribute('src') || '/assets/default.jpg',
+            rating: parseFloat(cols[3]?.textContent || '0'),
+            description: cols[4]?.textContent || '',
+            runtime: parseInt(cols[5]?.textContent || '0'),
+            category: cols[6]?.textContent || 'General',
+            streamUrl: cols[7]?.querySelector('a')?.getAttribute('href') || ''
+          };
+        });
+      });
 
-    // Navigate to create subscription page (update selector)
-    await page.goto(`${PANEL_URL}/create-subscription`, { waitUntil: 'networkidle0' });
+      await browser.close();
+      return streams;
+    } catch (err) {
+      await browser.close();
+      console.error('ResellerService error:', err);
+      return [];
+    }
+  }
 
-    // Fill subscription form
-    await page.type('input[name="customer_email"]', userEmail);
-    await page.select('select[name="plan_select"]', plan);
+  static async createSubscription(userEmail: string, username: string, password: string, packageId: string = '131') {
+    const browser = await puppeteer.launch({ headless: 'new', args: ['--no-sandbox'] });
+    const page = await browser.newPage();
 
-    await page.click('button[type="submit"]'); // Replace with actual save button
-    await page.waitForTimeout(2000); // Wait for creation
+    try {
+      // LOGIN
+      await page.goto(`${process.env.RESELLER_PANEL_URL}admin/index.php`, { waitUntil: 'networkidle0' });
+      await page.type('input[name="username"]', process.env.RESELLER_USER!);
+      await page.type('input[name="password"]', process.env.RESELLER_PASS!);
+      await page.click('button[type="submit"]');
+      await page.waitForNavigation({ waitUntil: 'networkidle0' });
 
-    // Extract subscription info (update selectors)
-    const subscription_id = await page.$eval('#subscription_id', el => el.textContent?.trim() || '');
-    const reseller_customer_id = await page.$eval('#customer_id', el => el.textContent?.trim() || '');
-    const stream_url = await page.$eval('#m3u_url', el => el.textContent?.trim() || '');
-    const expiry = await page.$eval('#expiry_date', el => el.textContent?.trim() || '');
+      // ADD NEW USER / SUBSCRIPTION
+      await page.goto(`${process.env.RESELLER_PANEL_URL}admin/users.php?sub=add`, { waitUntil: 'networkidle0' });
+      await page.select('select[name="line_type"]', 'line');
+      await page.type('input[name="username"]', username);
+      await page.type('input[name="password"]', password);
+      await page.select('select[name="package"]', packageId);
+      await page.click('input[name="is_isplock"]');
 
-    // Save to Supabase
-    await supabase.from('users').update({
-      reseller_customer_id,
-      subscription_id,
-      stream_url,
-      status: 'active',
-      expiry,
-      plan
-    }).eq('email', userEmail);
+      await page.evaluate(() => (window as any).save()); // Calls panel's save function
+      await page.waitForTimeout(2000);
 
-    console.log(`✅ Subscription created for ${userEmail}`);
-    return { reseller_customer_id, subscription_id, stream_url, expiry, plan };
-
-  } catch (err) {
-    console.error('❌ Puppeteer error:', err);
-    return null;
-  } finally {
-    await browser.close();
+      await browser.close();
+      console.log(`✅ Subscription created for ${username}`);
+      return true;
+    } catch (err) {
+      await browser.close();
+      console.error('ResellerService createSubscription error:', err);
+      return false;
+    }
   }
 }
