@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { createUserSubscription } from '@/api/createUserSubscription';
+import { createUserSubscription } from '../api/createUserSubscription';
 
 interface SubscriptionCardProps {
   userEmail: string; // pass logged-in user email
