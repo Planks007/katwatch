@@ -1,7 +1,7 @@
 // src/pages/Index.tsx
-import React, { useState, useEffect } from 'react';
-import { MediaRow } from '@/components/media/MediaRow';
-import { MediaDetailModal } from '@/components/media/MediaDetailModal';
+import React, { useState } from 'react';
+import MediaRow from '@/components/media/MediaRow';
+import MediaDetailModal from '@/components/media/MediaDetailModal';
 import { ResellerService, ResellerMedia } from '@/services/ResellerService';
 import { useAuth } from '@/contexts/AuthContext';
 import { useQuery } from '@tanstack/react-query';
@@ -34,24 +34,25 @@ const Index: React.FC = () => {
     }
 
     if (selectedMedia) {
-      // Open the stream in a new tab or player
       window.open(selectedMedia.stream_url, '_blank');
     }
   };
 
   // Handle subscribe click
   const handleSubscribe = () => {
-    // Navigate to subscription page or open modal
     alert('Redirecting to subscription page...');
   };
 
   return (
     <div className="min-h-screen bg-zinc-950">
       <div className="py-8 px-4 md:px-8 max-w-7xl mx-auto">
-        <h1 className="text-4xl font-bold text-white mb-8">Welcome, {user?.email || 'Guest'}</h1>
+        <h1 className="text-4xl font-bold text-white mb-8">
+          Welcome, {user?.email || 'Guest'}
+        </h1>
 
         {!subscription || subscription.status !== 'active' ? (
           <SubscriptionCard
+            userEmail={user?.email ?? ''}
             status={subscription?.status ?? null}
             nextBillingDate={subscription?.nextBillingDate ?? null}
             onSubscribe={handleSubscribe}
@@ -73,23 +74,21 @@ const Index: React.FC = () => {
           />
         )}
 
-        <MediaDetailModal
-          isOpen={!!selectedMedia}
-          media={
-            selectedMedia
-              ? {
-                  title: selectedMedia.name,
-                  description: selectedMedia.category,
-                  thumbnail_url: selectedMedia.thumbnail,
-                  rating: selectedMedia.rating,
-                  runtime: selectedMedia.runtime,
-                  category: selectedMedia.category,
-                }
-              : null
-          }
-          onClose={() => setSelectedMedia(null)}
-          onPlay={handlePlay}
-        />
+        {selectedMedia && (
+          <MediaDetailModal
+            isOpen={!!selectedMedia}
+            media={{
+              title: selectedMedia.name,
+              description: selectedMedia.category,
+              thumbnail_url: selectedMedia.thumbnail,
+              rating: selectedMedia.rating,
+              runtime: selectedMedia.runtime,
+              category: selectedMedia.category,
+            }}
+            onClose={() => setSelectedMedia(null)}
+            onPlay={handlePlay}
+          />
+        )}
       </div>
     </div>
   );
