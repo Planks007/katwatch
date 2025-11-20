@@ -1,4 +1,3 @@
-// src/services/ResellerService.ts
 import axios from 'axios';
 
 const BASE_URL = process.env.VITE_RESELLER_PANEL_URL!;
@@ -7,9 +6,9 @@ const PASSWORD = process.env.VITE_RESELLER_PANEL_PASS!;
 
 export interface ResellerMedia {
   id: string;
-  title: string;        // consistent with MediaCard / MediaDetailModal
+  name: string;
   category: string;
-  thumbnail_url: string; // consistent with MediaCard / MediaDetailModal
+  thumbnail: string;
   rating: number;
   runtime: number;
   stream_url: string;
@@ -21,15 +20,14 @@ export const ResellerService = {
       const auth = { username: USERNAME, password: PASSWORD };
       const res = await axios.get(`${BASE_URL}/api/streams?user=${userId}`, { auth });
 
-      // Transform API response to our internal media format
       return res.data.map((item: any) => ({
         id: item.id,
-        title: item.title || item.name || 'Untitled',
-        category: item.category || 'Unknown',
-        thumbnail_url: item.thumbnail_url || '', // fallback empty string
+        name: item.title,
+        category: item.category,
+        thumbnail: item.thumbnail_url,
         rating: item.rating ?? 0,
         runtime: item.runtime ?? 0,
-        stream_url: item.stream_url || '',
+        stream_url: item.stream_url,
       }));
     } catch (err) {
       console.error('Error fetching streams:', err);
