@@ -1,4 +1,3 @@
-// src/components/media/MediaCard.tsx
 import React from 'react';
 
 interface MediaCardProps {
@@ -6,30 +5,13 @@ interface MediaCardProps {
   thumbnail: string;
   rating: number;
   onClick: () => void;
-  isSubscribed: boolean; // NEW: pass subscription status
 }
 
-export const MediaCard: React.FC<MediaCardProps> = ({
-  title,
-  thumbnail,
-  rating,
-  onClick,
-  isSubscribed,
-}) => {
-  const handleClick = () => {
-    if (!isSubscribed) {
-      alert('You need an active subscription to play this content.');
-      return;
-    }
-    onClick();
-  };
-
+export const MediaCard: React.FC<MediaCardProps> = ({ title, thumbnail, rating, onClick }) => {
   return (
     <div
-      onClick={handleClick}
-      className={`group cursor-pointer transition-transform duration-300 hover:scale-105 ${
-        !isSubscribed ? 'opacity-50 hover:opacity-60' : ''
-      }`}
+      onClick={onClick}
+      className="group cursor-pointer transition-transform duration-300 hover:scale-105"
     >
       <div className="relative aspect-[2/3] rounded-lg overflow-hidden bg-zinc-800">
         <img
