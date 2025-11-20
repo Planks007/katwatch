@@ -28,6 +28,7 @@ export const MediaRow: React.FC<MediaRowProps> = ({ title, media, onMediaClick }
                 thumbnail={item.thumbnail_url}
                 rating={item.rating}
                 onClick={() => onMediaClick(item.id)}
+                isSubscribed={userSubscriptionStatus === 'active'} // pass your subscription status
               />
             </div>
           ))}
